@@ -41,6 +41,7 @@ type Client struct {
 	id                string
 	subsMutex         sync.RWMutex
 	subs              map[string]*Subscription
+	serverSubs        map[string]struct{}
 	requestsMutex     sync.RWMutex
 	requests          map[uint32]chan protocol.Reply
 	receive           chan []byte
@@ -121,6 +122,7 @@ func New(u string, config Config) *Client {
 		url:               u,
 		encoding:          encoding,
 		subs:              make(map[string]*Subscription),
+		serverSubs:        make(map[string]struct{}),
 		config:            config,
 		requests:          make(map[uint32]chan protocol.Reply),
 		reconnect:         true,
@@ -502,6 +504,7 @@ func (c *Client) handleMessage(msg protocol.Message) error {
 }
 
 func (c *Client) handlePush(msg protocol.Push) error {
+	fmt.Println(msg.Channel, msg.Type)
 	switch msg.Type {
 	case protocol.PushTypeMessage:
 		m, err := c.pushDecoder.DecodeMessage(msg.Data)
@@ -532,6 +535,13 @@ func (c *Client) handlePush(msg protocol.Push) error {
 		sub, ok := c.subs[channel]
 		c.subsMutex.RUnlock()
 		if !ok {
+			if _,ok:=c.serverSubs[channel];ok{
+				msg, err := c.pushDecoder.DecodeMessage(msg.Data)
+				if err != nil {
+					return err
+				}
+				_ = c.handleMessage(*msg)
+			}
 			return nil
 		}
 		sub.handlePublication(*m)
@@ -545,6 +555,7 @@ func (c *Client) handlePush(msg protocol.Push) error {
 		sub, ok := c.subs[channel]
 		c.subsMutex.RUnlock()
 		if !ok {
+			c.serverSubs[channel]= struct{}{}
 			return nil
 		}
 		sub.handleJoin(m.Info)
@@ -558,6 +569,7 @@ func (c *Client) handlePush(msg protocol.Push) error {
 		sub, ok := c.subs[channel]
 		c.subsMutex.RUnlock()
 		if !ok {
+			c.serverSubs[channel]= struct{}{}
 			return nil
 		}
 		sub.handleLeave(m.Info)
