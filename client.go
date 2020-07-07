@@ -504,7 +504,6 @@ func (c *Client) handleMessage(msg protocol.Message) error {
 }
 
 func (c *Client) handlePush(msg protocol.Push) error {
-	fmt.Println(msg.Channel, msg.Type)
 	switch msg.Type {
 	case protocol.PushTypeMessage:
 		m, err := c.pushDecoder.DecodeMessage(msg.Data)
@@ -535,7 +534,7 @@ func (c *Client) handlePush(msg protocol.Push) error {
 		sub, ok := c.subs[channel]
 		c.subsMutex.RUnlock()
 		if !ok {
-			if _,ok:=c.serverSubs[channel];ok{
+			if _, ok := c.serverSubs[channel]; ok {
 				msg, err := c.pushDecoder.DecodeMessage(msg.Data)
 				if err != nil {
 					return err
@@ -555,7 +554,7 @@ func (c *Client) handlePush(msg protocol.Push) error {
 		sub, ok := c.subs[channel]
 		c.subsMutex.RUnlock()
 		if !ok {
-			c.serverSubs[channel]= struct{}{}
+			c.serverSubs[channel] = struct{}{}
 			return nil
 		}
 		sub.handleJoin(m.Info)
@@ -569,7 +568,7 @@ func (c *Client) handlePush(msg protocol.Push) error {
 		sub, ok := c.subs[channel]
 		c.subsMutex.RUnlock()
 		if !ok {
-			c.serverSubs[channel]= struct{}{}
+			c.serverSubs[channel] = struct{}{}
 			return nil
 		}
 		sub.handleLeave(m.Info)
